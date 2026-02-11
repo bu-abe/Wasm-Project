@@ -19,31 +19,175 @@ export function add(a: i32, b: i32): i32 {
   return a + b;
 }
 
-// 既存のコードはそのまま残す
-
 // グレースケール処理
-// pixelData: RGBA形式のピクセルデータ（長さは width * height * 4）
-// width, height: 画像の幅と高さ
-export function grayscaleFilter(
-  pixelDataPtr: usize,
-  pixelDataLength: u32
+export function grayscaleFilter(offset: u32, length: u32): void {
+  for (let i: u32 = offset; i < offset + length; i += 4) {
+    const r = load<u8>(i);
+    const g = load<u8>(i + 1);
+    const b = load<u8>(i + 2);
+    const gray: u8 = u8(f32(r) * 0.299 + f32(g) * 0.587 + f32(b) * 0.114);
+    store<u8>(i, gray);
+    store<u8>(i + 1, gray);
+    store<u8>(i + 2, gray);
+  }
+}
+
+// 明るさ調整 (value: -255〜255)
+export function brightnessFilter(offset: u32, length: u32, value: i32): void {
+  for (let i: u32 = offset; i < offset + length; i += 4) {
+    const r = i32(load<u8>(i)) + value;
+    const g = i32(load<u8>(i + 1)) + value;
+    const b = i32(load<u8>(i + 2)) + value;
+    store<u8>(i, u8(max(0, min(255, r))));
+    store<u8>(i + 1, u8(max(0, min(255, g))));
+    store<u8>(i + 2, u8(max(0, min(255, b))));
+  }
+}
+
+// コントラスト調整 (factor: -100〜100 → 内部で変換)
+export function contrastFilter(offset: u32, length: u32, value: i32): void {
+  // value: -100〜100 → factor 計算
+  const factor: f32 = f32(i32(259) * (value + i32(255))) / f32(i32(255) * (i32(259) - value));
+  for (let i: u32 = offset; i < offset + length; i += 4) {
+    const r = factor * (f32(load<u8>(i)) - 128.0) + 128.0;
+    const g = factor * (f32(load<u8>(i + 1)) - 128.0) + 128.0;
+    const b = factor * (f32(load<u8>(i + 2)) - 128.0) + 128.0;
+    store<u8>(i, u8(max<f32>(0, min<f32>(255, r))));
+    store<u8>(i + 1, u8(max<f32>(0, min<f32>(255, g))));
+    store<u8>(i + 2, u8(max<f32>(0, min<f32>(255, b))));
+  }
+}
+
+// 彩度調整 (value: -100〜100)
+export function saturationFilter(offset: u32, length: u32, value: i32): void {
+  const factor: f32 = (f32(value) + 100.0) / 100.0;
+  for (let i: u32 = offset; i < offset + length; i += 4) {
+    const r = f32(load<u8>(i));
+    const g = f32(load<u8>(i + 1));
+    const b = f32(load<u8>(i + 2));
+    const gray: f32 = r * 0.299 + g * 0.587 + b * 0.114;
+    const nr = gray + factor * (r - gray);
+    const ng = gray + factor * (g - gray);
+    const nb = gray + factor * (b - gray);
+    store<u8>(i, u8(max<f32>(0, min<f32>(255, nr))));
+    store<u8>(i + 1, u8(max<f32>(0, min<f32>(255, ng))));
+    store<u8>(i + 2, u8(max<f32>(0, min<f32>(255, nb))));
+  }
+}
+
+// セピア効果
+export function sepiaFilter(offset: u32, length: u32): void {
+  for (let i: u32 = offset; i < offset + length; i += 4) {
+    const r = f32(load<u8>(i));
+    const g = f32(load<u8>(i + 1));
+    const b = f32(load<u8>(i + 2));
+    const nr = r * 0.393 + g * 0.769 + b * 0.189;
+    const ng = r * 0.349 + g * 0.686 + b * 0.168;
+    const nb = r * 0.272 + g * 0.534 + b * 0.131;
+    store<u8>(i, u8(min<f32>(255, nr)));
+    store<u8>(i + 1, u8(min<f32>(255, ng)));
+    store<u8>(i + 2, u8(min<f32>(255, nb)));
+  }
+}
+
+// 色反転
+export function invertFilter(offset: u32, length: u32): void {
+  for (let i: u32 = offset; i < offset + length; i += 4) {
+    store<u8>(i, 255 - load<u8>(i));
+    store<u8>(i + 1, 255 - load<u8>(i + 1));
+    store<u8>(i + 2, 255 - load<u8>(i + 2));
+  }
+}
+
+// ボックスブラー (src→dst, 別領域に出力)
+export function boxBlurFilter(
+  src: u32,
+  dst: u32,
+  width: u32,
+  height: u32,
+  radius: u32
 ): void {
-  const pixelData = changetype<Uint8Array>(pixelDataPtr);
+  const diameter: u32 = radius * 2 + 1;
+  const area: f32 = f32(diameter * diameter);
 
-  // 4バイト（RGBA）単位でループ
-  for (let i: u32 = 0; i < pixelDataLength; i += 4) {
-    const r = pixelData[i];
-    const g = pixelData[i + 1];
-    const b = pixelData[i + 2];
-    // A (alpha) はそのまま
+  for (let y: u32 = 0; y < height; y++) {
+    for (let x: u32 = 0; x < width; x++) {
+      let rSum: f32 = 0;
+      let gSum: f32 = 0;
+      let bSum: f32 = 0;
+      let aSum: f32 = 0;
 
-    // グレースケール：加重平均
-    // 人間の目の感度を考慮した係数
-    const gray = u8(r * 0.299 + g * 0.587 + b * 0.114);
+      for (let dy: i32 = -i32(radius); dy <= i32(radius); dy++) {
+        for (let dx: i32 = -i32(radius); dx <= i32(radius); dx++) {
+          // クランプ: 端のピクセルを繰り返す
+          const sx: u32 = u32(max(0, min(i32(width) - 1, i32(x) + dx)));
+          const sy: u32 = u32(max(0, min(i32(height) - 1, i32(y) + dy)));
+          const idx: u32 = src + (sy * width + sx) * 4;
+          rSum += f32(load<u8>(idx));
+          gSum += f32(load<u8>(idx + 1));
+          bSum += f32(load<u8>(idx + 2));
+          aSum += f32(load<u8>(idx + 3));
+        }
+      }
 
-    pixelData[i] = gray;
-    pixelData[i + 1] = gray;
-    pixelData[i + 2] = gray;
-    // pixelData[i + 3] は変更しない（アルファ値維持）
+      const outIdx: u32 = dst + (y * width + x) * 4;
+      store<u8>(outIdx, u8(rSum / area));
+      store<u8>(outIdx + 1, u8(gSum / area));
+      store<u8>(outIdx + 2, u8(bSum / area));
+      store<u8>(outIdx + 3, u8(aSum / area));
+    }
+  }
+}
+
+// シャープ化 (src→dst, amount: 0〜100)
+export function sharpenFilter(
+  src: u32,
+  dst: u32,
+  width: u32,
+  height: u32,
+  amount: i32
+): void {
+  const factor: f32 = f32(amount) / 100.0;
+  // シャープ化カーネル: center = 1 + 4*factor, neighbors = -factor
+  const center: f32 = 1.0 + 4.0 * factor;
+  const edge: f32 = -factor;
+
+  for (let y: u32 = 0; y < height; y++) {
+    for (let x: u32 = 0; x < width; x++) {
+      const idx: u32 = src + (y * width + x) * 4;
+
+      for (let c: u32 = 0; c < 3; c++) {
+        let val: f32 = center * f32(load<u8>(idx + c));
+
+        // 上
+        if (y > 0) {
+          val += edge * f32(load<u8>(src + ((y - 1) * width + x) * 4 + c));
+        } else {
+          val += edge * f32(load<u8>(idx + c));
+        }
+        // 下
+        if (y < height - 1) {
+          val += edge * f32(load<u8>(src + ((y + 1) * width + x) * 4 + c));
+        } else {
+          val += edge * f32(load<u8>(idx + c));
+        }
+        // 左
+        if (x > 0) {
+          val += edge * f32(load<u8>(src + (y * width + x - 1) * 4 + c));
+        } else {
+          val += edge * f32(load<u8>(idx + c));
+        }
+        // 右
+        if (x < width - 1) {
+          val += edge * f32(load<u8>(src + (y * width + x + 1) * 4 + c));
+        } else {
+          val += edge * f32(load<u8>(idx + c));
+        }
+
+        store<u8>(dst + (y * width + x) * 4 + c, u8(max<f32>(0, min<f32>(255, val))));
+      }
+      // alpha をコピー
+      store<u8>(dst + (y * width + x) * 4 + 3, load<u8>(idx + 3));
+    }
   }
 }
