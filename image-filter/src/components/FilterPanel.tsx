@@ -5,7 +5,7 @@ export function FilterPanel() {
   const { filters, updateFilter, resetFilters } = useEditorStore();
 
   return (
-    <div className="w-64 bg-gray-800 p-4 overflow-y-auto border-r border-gray-700 flex flex-col">
+    <div className="md:w-64 w-full md:h-auto h-52 bg-gray-800 p-4 overflow-y-auto md:border-r md:border-t-0 border-t border-gray-700 flex flex-col shrink-0">
       <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
         調整
       </h2>

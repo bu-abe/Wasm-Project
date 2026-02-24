@@ -1,4 +1,15 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(sleep 3:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(curl:*)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_file_upload"
+    ]
+  },
   "enabledMcpjsonServers": [
     "playwright"
   ]

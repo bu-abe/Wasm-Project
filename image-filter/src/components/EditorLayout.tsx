@@ -49,7 +49,7 @@ export function EditorLayout() {
         onDownload={handleDownload}
         hasImage={hasImage}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col-reverse md:flex-row">
         {hasImage && <FilterPanel />}
         <Canvas canvasRef={canvasRef} hasImage={hasImage} />
       </div>
