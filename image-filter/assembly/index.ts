@@ -99,7 +99,8 @@ export function invertFilter(offset: u32, length: u32): void {
   }
 }
 
-// ボックスブラー (src→dst, 別領域に出力)
+// ボックスブラー (src→dst, スライディングウィンドウ方式)
+// 水平パス(src→dst) → 垂直パス(dst→src) → src→dst にコピー
 export function boxBlurFilter(
   src: u32,
   dst: u32,
@@ -107,36 +108,106 @@ export function boxBlurFilter(
   height: u32,
   radius: u32
 ): void {
-  const diameter: u32 = radius * 2 + 1;
-  const area: f32 = f32(diameter * diameter);
+  const diameter: f32 = f32(radius * 2 + 1);
 
+  // === 水平パス: src → dst ===
   for (let y: u32 = 0; y < height; y++) {
-    for (let x: u32 = 0; x < width; x++) {
-      let rSum: f32 = 0;
-      let gSum: f32 = 0;
-      let bSum: f32 = 0;
-      let aSum: f32 = 0;
+    let rSum: f32 = 0;
+    let gSum: f32 = 0;
+    let bSum: f32 = 0;
+    let aSum: f32 = 0;
 
-      for (let dy: i32 = -i32(radius); dy <= i32(radius); dy++) {
-        for (let dx: i32 = -i32(radius); dx <= i32(radius); dx++) {
-          // クランプ: 端のピクセルを繰り返す
-          const sx: u32 = u32(max(0, min(i32(width) - 1, i32(x) + dx)));
-          const sy: u32 = u32(max(0, min(i32(height) - 1, i32(y) + dy)));
-          const idx: u32 = src + (sy * width + sx) * 4;
-          rSum += f32(load<u8>(idx));
-          gSum += f32(load<u8>(idx + 1));
-          bSum += f32(load<u8>(idx + 2));
-          aSum += f32(load<u8>(idx + 3));
-        }
-      }
+    // 最初のウィンドウを構築 (x=0 のための初期合計)
+    for (let dx: i32 = -i32(radius); dx <= i32(radius); dx++) {
+      const sx: u32 = u32(max(0, min(i32(width) - 1, dx)));
+      const idx: u32 = src + (y * width + sx) * 4;
+      rSum += f32(load<u8>(idx));
+      gSum += f32(load<u8>(idx + 1));
+      bSum += f32(load<u8>(idx + 2));
+      aSum += f32(load<u8>(idx + 3));
+    }
+
+    // x=0 の結果を書き込み
+    const outIdx0: u32 = dst + y * width * 4;
+    store<u8>(outIdx0, u8(rSum / diameter));
+    store<u8>(outIdx0 + 1, u8(gSum / diameter));
+    store<u8>(outIdx0 + 2, u8(bSum / diameter));
+    store<u8>(outIdx0 + 3, u8(aSum / diameter));
+
+    // x=1〜 はスライド: 左端を引いて右端を足す
+    for (let x: u32 = 1; x < width; x++) {
+      // 左端: 抜けるピクセル (x - radius - 1)
+      const removeX: u32 = u32(max(0, i32(x) - i32(radius) - 1));
+      const removeIdx: u32 = src + (y * width + removeX) * 4;
+      rSum -= f32(load<u8>(removeIdx));
+      gSum -= f32(load<u8>(removeIdx + 1));
+      bSum -= f32(load<u8>(removeIdx + 2));
+      aSum -= f32(load<u8>(removeIdx + 3));
+
+      // 右端: 入るピクセル (x + radius)
+      const addX: u32 = u32(min(i32(width) - 1, i32(x) + i32(radius)));
+      const addIdx: u32 = src + (y * width + addX) * 4;
+      rSum += f32(load<u8>(addIdx));
+      gSum += f32(load<u8>(addIdx + 1));
+      bSum += f32(load<u8>(addIdx + 2));
+      aSum += f32(load<u8>(addIdx + 3));
 
       const outIdx: u32 = dst + (y * width + x) * 4;
-      store<u8>(outIdx, u8(rSum / area));
-      store<u8>(outIdx + 1, u8(gSum / area));
-      store<u8>(outIdx + 2, u8(bSum / area));
-      store<u8>(outIdx + 3, u8(aSum / area));
+      store<u8>(outIdx, u8(rSum / diameter));
+      store<u8>(outIdx + 1, u8(gSum / diameter));
+      store<u8>(outIdx + 2, u8(bSum / diameter));
+      store<u8>(outIdx + 3, u8(aSum / diameter));
     }
   }
+
+  // === 垂直パス: dst → src (一時的にsrc領域を使う) ===
+  for (let x: u32 = 0; x < width; x++) {
+    let rSum: f32 = 0;
+    let gSum: f32 = 0;
+    let bSum: f32 = 0;
+    let aSum: f32 = 0;
+
+    // 最初のウィンドウを構築 (y=0 のための初期合計)
+    for (let dy: i32 = -i32(radius); dy <= i32(radius); dy++) {
+      const sy: u32 = u32(max(0, min(i32(height) - 1, dy)));
+      const idx: u32 = dst + (sy * width + x) * 4;
+      rSum += f32(load<u8>(idx));
+      gSum += f32(load<u8>(idx + 1));
+      bSum += f32(load<u8>(idx + 2));
+      aSum += f32(load<u8>(idx + 3));
+    }
+
+    const outIdx0: u32 = src + x * 4;
+    store<u8>(outIdx0, u8(rSum / diameter));
+    store<u8>(outIdx0 + 1, u8(gSum / diameter));
+    store<u8>(outIdx0 + 2, u8(bSum / diameter));
+    store<u8>(outIdx0 + 3, u8(aSum / diameter));
+
+    for (let y: u32 = 1; y < height; y++) {
+      const removeY: u32 = u32(max(0, i32(y) - i32(radius) - 1));
+      const removeIdx: u32 = dst + (removeY * width + x) * 4;
+      rSum -= f32(load<u8>(removeIdx));
+      gSum -= f32(load<u8>(removeIdx + 1));
+      bSum -= f32(load<u8>(removeIdx + 2));
+      aSum -= f32(load<u8>(removeIdx + 3));
+
+      const addY: u32 = u32(min(i32(height) - 1, i32(y) + i32(radius)));
+      const addIdx: u32 = dst + (addY * width + x) * 4;
+      rSum += f32(load<u8>(addIdx));
+      gSum += f32(load<u8>(addIdx + 1));
+      bSum += f32(load<u8>(addIdx + 2));
+      aSum += f32(load<u8>(addIdx + 3));
+
+      const outIdx: u32 = src + (y * width + x) * 4;
+      store<u8>(outIdx, u8(rSum / diameter));
+      store<u8>(outIdx + 1, u8(gSum / diameter));
+      store<u8>(outIdx + 2, u8(bSum / diameter));
+      store<u8>(outIdx + 3, u8(aSum / diameter));
+    }
+  }
+
+  // 結果が src にあるので dst にコピー
+  memory.copy(dst, src, width * height * 4);
 }
 
 // シャープ化 (src→dst, amount: 0〜100)
