@@ -22,6 +22,8 @@ const DEFAULT_FILTERS: FilterSettings = {
   invert: false,
 };
 
+export type RenderMode = "wasm" | "js";
+
 interface EditorState {
   // 画像データ
   originalImageData: ImageData | null;
@@ -30,6 +32,9 @@ interface EditorState {
 
   // フィルター設定
   filters: FilterSettings;
+
+  // レンダリングモード
+  renderMode: RenderMode;
 
   // Undo/Redo
   history: FilterSettings[];
@@ -42,6 +47,7 @@ interface EditorState {
     value: FilterSettings[K]
   ) => void;
   resetFilters: () => void;
+  setRenderMode: (mode: RenderMode) => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -54,6 +60,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   imageHeight: 0,
 
   filters: { ...DEFAULT_FILTERS },
+
+  renderMode: "wasm",
 
   history: [{ ...DEFAULT_FILTERS }],
   historyIndex: 0,
@@ -114,6 +122,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       });
     }
   },
+
+  setRenderMode: (mode) => set({ renderMode: mode }),
 
   canUndo: () => get().historyIndex > 0,
   canRedo: () => get().historyIndex < get().history.length - 1,

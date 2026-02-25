@@ -1,8 +1,10 @@
 import { useEditorStore } from "../store/editorStore";
 import { AdjustmentSlider } from "./AdjustmentSlider";
+import { useBenchmark } from "../hooks/useBenchmark";
 
 export function FilterPanel() {
   const { filters, updateFilter, resetFilters } = useEditorStore();
+  const { runBenchmark, result, isRunning } = useBenchmark();
 
   return (
     <div className="md:w-64 w-full md:h-auto h-52 bg-gray-800 p-4 overflow-y-auto md:border-r md:border-t-0 border-t border-gray-700 flex flex-col shrink-0">
@@ -79,13 +81,51 @@ export function FilterPanel() {
         </label>
       </div>
 
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-4 flex flex-col gap-2">
         <button
           onClick={resetFilters}
           className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition"
         >
           リセット
         </button>
+
+        <div className="border-t border-gray-700 pt-3">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            JS vs WASM
+          </h2>
+          <button
+            onClick={runBenchmark}
+            disabled={isRunning}
+            className="w-full px-3 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-sm rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isRunning ? "計測中..." : "ベンチマーク実行"}
+          </button>
+
+          {result && (
+            <div className="mt-2 text-xs space-y-1">
+              <div className="flex justify-between text-gray-400">
+                <span>画素数</span>
+                <span>{result.pixelCount.toLocaleString()} px</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-yellow-400">JS</span>
+                <span className="text-yellow-400 font-mono">{result.jsTime.toFixed(2)} ms</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-400">WASM</span>
+                <span className="text-blue-400 font-mono">{result.wasmTime.toFixed(2)} ms</span>
+              </div>
+              <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
+                <span className="text-gray-300">速度差</span>
+                <span className={`font-bold font-mono ${result.speedup >= 1 ? "text-green-400" : "text-red-400"}`}>
+                  {result.speedup >= 1
+                    ? `WASM が ${result.speedup.toFixed(2)}x 速い`
+                    : `JS が ${(1 / result.speedup).toFixed(2)}x 速い`}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

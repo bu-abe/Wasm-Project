@@ -7,7 +7,8 @@
       "mcp__playwright__browser_take_screenshot",
       "Bash(curl:*)",
       "mcp__playwright__browser_click",
-      "mcp__playwright__browser_file_upload"
+      "mcp__playwright__browser_file_upload",
+      "mcp__ide__getDiagnostics"
     ]
   },
   "enabledMcpjsonServers": [

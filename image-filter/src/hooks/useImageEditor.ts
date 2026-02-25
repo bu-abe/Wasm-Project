@@ -2,22 +2,28 @@ import { useEffect, useRef, useCallback } from "react";
 import { useEditorStore } from "../store/editorStore";
 import { useWasm } from "./useWasm";
 import { applyFilters } from "../lib/wasmFilters";
+import { applyFiltersJS } from "../lib/jsFilters";
 
 export function useImageEditor() {
   const { wasmModule, loading, error } = useWasm();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { originalImageData, filters, setOriginalImageData } = useEditorStore();
+  const { originalImageData, filters, renderMode, setOriginalImageData } = useEditorStore();
 
   // フィルター変更時にキャンバスを再描画
   useEffect(() => {
-    if (!originalImageData || !wasmModule || !canvasRef.current) return;
+    if (!originalImageData || !canvasRef.current) return;
+    if (renderMode === "wasm" && !wasmModule) return;
 
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
 
-    const result = applyFilters(wasmModule, originalImageData, filters);
+    const result =
+      renderMode === "wasm" && wasmModule
+        ? applyFilters(wasmModule, originalImageData, filters)
+        : applyFiltersJS(originalImageData, filters);
+
     ctx.putImageData(result, 0, 0);
-  }, [originalImageData, filters, wasmModule]);
+  }, [originalImageData, filters, wasmModule, renderMode]);
 
   // 画像アップロード処理
   const handleImageUpload = useCallback(

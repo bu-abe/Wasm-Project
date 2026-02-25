@@ -9,7 +9,7 @@ interface ToolbarProps {
 
 export function Toolbar({ onImageUpload, onDownload, hasImage }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { undo, redo, canUndo, canRedo } = useEditorStore();
+  const { undo, redo, canUndo, canRedo, renderMode, setRenderMode } = useEditorStore();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,6 +57,31 @@ export function Toolbar({ onImageUpload, onDownload, hasImage }: ToolbarProps) {
       >
         ↪ やり直し
       </button>
+
+      <div className="w-px h-6 bg-gray-600 mx-1 shrink-0" />
+
+      <div className="flex rounded overflow-hidden shrink-0 border border-gray-600 text-xs font-mono">
+        <button
+          onClick={() => setRenderMode("js")}
+          className={`px-2.5 py-1 transition whitespace-nowrap ${
+            renderMode === "js"
+              ? "bg-yellow-500 text-gray-900 font-bold"
+              : "text-gray-400 hover:bg-gray-700"
+          }`}
+        >
+          JS
+        </button>
+        <button
+          onClick={() => setRenderMode("wasm")}
+          className={`px-2.5 py-1 transition whitespace-nowrap ${
+            renderMode === "wasm"
+              ? "bg-blue-500 text-white font-bold"
+              : "text-gray-400 hover:bg-gray-700"
+          }`}
+        >
+          WASM
+        </button>
+      </div>
 
       {hasImage && (
         <>
