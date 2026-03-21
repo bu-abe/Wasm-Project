@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import * as Type from "../types";
 
-export function useWasm(wasmPath: string = "/build/release.wasm") {
+export function useWasm(wasmPath: string = import.meta.env.BASE_URL + "build/release.wasm") {
   const [wasmModule, setWasmModule] = useState<Type.WasmExports | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

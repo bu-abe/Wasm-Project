@@ -1,0 +1,88 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAGES: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # === image-filter ===
+      - name: "image-filter: install"
+        working-directory: image-filter
+        run: npm ci
+
+      - name: "image-filter: build WASM"
+        working-directory: image-filter
+        run: npm run asbuild:release
+
+      - name: "image-filter: copy WASM to public"
+        working-directory: image-filter
+        run: |
+          mkdir -p public/build
+          cp build/release.wasm public/build/release.wasm
+
+      - name: "image-filter: build"
+        working-directory: image-filter
+        run: npm run build
+
+      # === video-editor ===
+      - name: "video-editor: install"
+        working-directory: video-editor
+        run: npm ci
+
+      - name: "video-editor: build WASM"
+        working-directory: video-editor
+        run: npm run wasm:build
+
+      - name: "video-editor: build"
+        working-directory: video-editor
+        run: npm run build
+
+      # === Combine outputs ===
+      - name: Prepare pages
+        run: |
+          mkdir -p _site/image-filter _site/video-editor
+          cp -r image-filter/dist/* _site/image-filter/
+          cp -r video-editor/dist/* _site/video-editor/
+          cp landing-page.html _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
