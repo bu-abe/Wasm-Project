@@ -2,33 +2,46 @@ import { useEffect, useRef, useCallback } from "react";
 import { useVideoStore } from "../store/videoStore";
 import { applyJsFilters } from "../lib/jsFilters";
 import { applyWasmFilters } from "../lib/wasmFilters";
-import type { FilterSettings, RenderMode } from "../types";
+import type { FilterSettings, RenderMode, SourceMode } from "../types";
 import { usePerformance } from "./usePerformance";
 import type * as VideoWasmModule from "../wasm-pkg/video_filter.js"; // @ts-ignore - wasm-pack ビルド後に生成されるファイル
+
+type SegmentFrameFn = (
+  video: HTMLVideoElement,
+  timestamp: number,
+  targetWidth: number,
+  targetHeight: number
+) => Uint8Array | null;
 
 interface UseVideoPlayerOptions {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   wasmModule: typeof VideoWasmModule;
+  segmentFrame?: SegmentFrameFn | null;
 }
 
 export function useVideoPlayer({
   videoRef,
   canvasRef,
   wasmModule,
+  segmentFrame,
 }: UseVideoPlayerOptions) {
   const rafRef = useRef<number | null>(null);
   const { recordFrame, reset } = usePerformance();
+  const segmentFrameRef = useRef(segmentFrame);
+  segmentFrameRef.current = segmentFrame;
 
   // stale closure 対策: ストア値をrefで同期
   const storeRef = useRef<{
     filters: FilterSettings;
     renderMode: RenderMode;
     isPlaying: boolean;
+    sourceMode: SourceMode;
   }>({
     filters: useVideoStore.getState().filters,
     renderMode: useVideoStore.getState().renderMode,
     isPlaying: useVideoStore.getState().isPlaying,
+    sourceMode: useVideoStore.getState().sourceMode,
   });
 
   useEffect(() => {
@@ -37,6 +50,7 @@ export function useVideoPlayer({
         filters: state.filters,
         renderMode: state.renderMode,
         isPlaying: state.isPlaying,
+        sourceMode: state.sourceMode,
       };
     });
   }, []);
@@ -85,15 +99,27 @@ export function useVideoPlayer({
         filters.brightness !== 0 ||
         filters.contrast !== 0 ||
         filters.saturation !== 0 ||
-        filters.blur > 0;
+        filters.blur > 0 ||
+        filters.backgroundBlur;
 
       if (hasAnyFilter) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+        // 背景ぼかし用のセグメンテーションマスクを取得
+        let mask: Uint8Array | null = null;
+        if (filters.backgroundBlur && segmentFrameRef.current) {
+          mask = segmentFrameRef.current(
+            video,
+            performance.now(),
+            canvas.width,
+            canvas.height
+          );
+        }
+
         if (renderMode === "wasm" && wasmModule) {
-          applyWasmFilters(imageData, filters, wasmModule);
+          applyWasmFilters(imageData, filters, wasmModule, mask);
         } else {
-          applyJsFilters(imageData, filters);
+          applyJsFilters(imageData, filters, mask);
         }
 
         ctx.putImageData(imageData, 0, 0);

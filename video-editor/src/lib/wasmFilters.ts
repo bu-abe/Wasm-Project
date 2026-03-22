@@ -4,12 +4,20 @@ import type * as VideoWasmModule from "../wasm-pkg/video_filter.js"; // @ts-igno
 export function applyWasmFilters(
   imageData: ImageData,
   filters: FilterSettings,
-  wasm: typeof VideoWasmModule
+  wasm: typeof VideoWasmModule,
+  mask?: Uint8Array | null
 ): ImageData {
   const { data, width, height } = imageData;
 
   // Uint8ClampedArray → Uint8Array ビュー（コピーなし）
   const pixels = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+
+  if (filters.backgroundBlur && mask) {
+    const src = new Uint8Array(pixels);
+    const dst = new Uint8Array(pixels.length);
+    wasm.background_blur_filter(src, dst, mask, width, height, filters.backgroundBlurRadius);
+    pixels.set(dst);
+  }
 
   if (filters.grayscale) wasm.grayscale_filter(pixels);
   if (filters.sepia) wasm.sepia_filter(pixels);

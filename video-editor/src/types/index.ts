@@ -1,4 +1,5 @@
 export type RenderMode = "js" | "wasm";
+export type SourceMode = "file" | "camera";
 
 export interface FilterSettings {
   grayscale: boolean;
@@ -8,6 +9,8 @@ export interface FilterSettings {
   contrast: number; // -100..100
   saturation: number; // -100..100
   blur: number; // 0..20
+  backgroundBlur: boolean;
+  backgroundBlurRadius: number; // 0..40
 }
 
 export interface PerformanceStats {

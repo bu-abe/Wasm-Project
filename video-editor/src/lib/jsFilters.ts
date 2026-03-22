@@ -86,11 +86,107 @@ function applyBlur(data: Uint8ClampedArray, width: number, height: number, radiu
   return data
 }
 
+function applyBackgroundBlur(
+  data: Uint8ClampedArray,
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  radius: number
+): void {
+  if (radius === 0) return
+
+  // 3パス Box Blur でガウシアン近似（分離フィルタ）
+  const passRadius = Math.max(1, Math.floor(radius / 3))
+  const len = data.length
+
+  let bufA = new Uint8ClampedArray(data)
+  let bufB = new Uint8ClampedArray(len)
+
+  for (let pass = 0; pass < 3; pass++) {
+    // 水平パス: bufA → bufB
+    const diameter = 2 * passRadius + 1
+    for (let y = 0; y < height; y++) {
+      const row = y * width * 4
+      let sumR = 0, sumG = 0, sumB = 0
+      // 初期ウィンドウ
+      for (let x = 0; x <= Math.min(passRadius, width - 1); x++) {
+        const idx = row + x * 4
+        sumR += bufA[idx]; sumG += bufA[idx + 1]; sumB += bufA[idx + 2]
+      }
+      sumR += bufA[row] * passRadius
+      sumG += bufA[row + 1] * passRadius
+      sumB += bufA[row + 2] * passRadius
+
+      for (let x = 0; x < width; x++) {
+        const outIdx = row + x * 4
+        bufB[outIdx] = sumR / diameter
+        bufB[outIdx + 1] = sumG / diameter
+        bufB[outIdx + 2] = sumB / diameter
+        bufB[outIdx + 3] = bufA[outIdx + 3]
+
+        const right = Math.min(x + passRadius + 1, width - 1)
+        const left = Math.max(x - passRadius, 0)
+        const addIdx = row + right * 4
+        const remIdx = row + left * 4
+        sumR += bufA[addIdx] - bufA[remIdx]
+        sumG += bufA[addIdx + 1] - bufA[remIdx + 1]
+        sumB += bufA[addIdx + 2] - bufA[remIdx + 2]
+      }
+    }
+
+    // 垂直パス: bufB → bufA
+    for (let x = 0; x < width; x++) {
+      const col = x * 4
+      let sumR = 0, sumG = 0, sumB = 0
+      for (let y = 0; y <= Math.min(passRadius, height - 1); y++) {
+        const idx = y * width * 4 + col
+        sumR += bufB[idx]; sumG += bufB[idx + 1]; sumB += bufB[idx + 2]
+      }
+      sumR += bufB[col] * passRadius
+      sumG += bufB[col + 1] * passRadius
+      sumB += bufB[col + 2] * passRadius
+
+      for (let y = 0; y < height; y++) {
+        const outIdx = y * width * 4 + col
+        bufA[outIdx] = sumR / diameter
+        bufA[outIdx + 1] = sumG / diameter
+        bufA[outIdx + 2] = sumB / diameter
+        bufA[outIdx + 3] = bufB[outIdx + 3]
+
+        const bottom = Math.min(y + passRadius + 1, height - 1)
+        const top = Math.max(y - passRadius, 0)
+        const addIdx = bottom * width * 4 + col
+        const remIdx = top * width * 4 + col
+        sumR += bufB[addIdx] - bufB[remIdx]
+        sumG += bufB[addIdx + 1] - bufB[remIdx + 1]
+        sumB += bufB[addIdx + 2] - bufB[remIdx + 2]
+      }
+    }
+  }
+
+  // マスク合成: 人物(mask=255)は元画像, 背景(mask=0)はぼかし
+  const src = new Uint8ClampedArray(data)
+  const pixelCount = width * height
+  for (let i = 0; i < pixelCount; i++) {
+    const alpha = mask[i] / 255
+    const inv = 1 - alpha
+    const pi = i * 4
+    data[pi] = src[pi] * alpha + bufA[pi] * inv
+    data[pi + 1] = src[pi + 1] * alpha + bufA[pi + 1] * inv
+    data[pi + 2] = src[pi + 2] * alpha + bufA[pi + 2] * inv
+  }
+}
+
 export function applyJsFilters(
   imageData: ImageData,
-  filters: FilterSettings
+  filters: FilterSettings,
+  mask?: Uint8Array | null
 ): ImageData {
   const { data, width, height } = imageData
+
+  if (filters.backgroundBlur && mask) {
+    applyBackgroundBlur(data, mask, width, height, filters.backgroundBlurRadius)
+  }
 
   if (filters.grayscale) applyGrayscale(data)
   if (filters.sepia) applySepia(data)

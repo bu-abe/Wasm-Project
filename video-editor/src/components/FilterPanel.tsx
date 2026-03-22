@@ -5,6 +5,7 @@ export function FilterPanel() {
   const filters = useVideoStore((s) => s.filters)
   const setFilter = useVideoStore((s) => s.setFilter)
   const resetFilters = useVideoStore((s) => s.resetFilters)
+  const sourceMode = useVideoStore((s) => s.sourceMode)
 
   const toggleFilters: Array<{ key: 'grayscale' | 'sepia' | 'invert'; label: string }> = [
     { key: 'grayscale', label: 'グレースケール' },
@@ -22,6 +23,36 @@ export function FilterPanel() {
         >
           リセット
         </button>
+      </div>
+
+      {/* 背景ぼかし */}
+      <div className="space-y-2 pb-3 border-b border-gray-700">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-white font-medium">背景ぼかし</span>
+          {sourceMode !== 'camera' && (
+            <span className="text-xs text-gray-500">カメラモードで使用</span>
+          )}
+        </div>
+        <button
+          onClick={() => setFilter('backgroundBlur', !filters.backgroundBlur)}
+          disabled={sourceMode !== 'camera'}
+          className={`w-full py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${
+            filters.backgroundBlur && sourceMode === 'camera'
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+        >
+          {filters.backgroundBlur ? 'ON' : 'OFF'}
+        </button>
+        {filters.backgroundBlur && sourceMode === 'camera' && (
+          <AdjustmentSlider
+            label="ぼかし強度"
+            value={filters.backgroundBlurRadius}
+            min={0}
+            max={40}
+            onChange={(v) => setFilter('backgroundBlurRadius', v)}
+          />
+        )}
       </div>
 
       {/* トグルフィルター */}
