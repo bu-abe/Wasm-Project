@@ -81,6 +81,16 @@ export function Toolbar({ onImageUpload, onDownload, hasImage }: ToolbarProps) {
         >
           WASM
         </button>
+        <button
+          onClick={() => setRenderMode("webgl")}
+          className={`px-2.5 py-1 transition whitespace-nowrap ${
+            renderMode === "webgl"
+              ? "bg-green-500 text-white font-bold"
+              : "text-gray-400 hover:bg-gray-700"
+          }`}
+        >
+          WebGL
+        </button>
       </div>
 
       {hasImage && (

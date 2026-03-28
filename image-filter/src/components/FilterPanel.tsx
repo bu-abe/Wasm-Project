@@ -91,7 +91,7 @@ export function FilterPanel() {
 
         <div className="border-t border-gray-700 pt-3">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            JS vs WASM
+            JS vs WASM vs WebGL
           </h2>
           <button
             onClick={runBenchmark}
@@ -115,13 +115,27 @@ export function FilterPanel() {
                 <span className="text-blue-400">WASM</span>
                 <span className="text-blue-400 font-mono">{result.wasmTime.toFixed(2)} ms</span>
               </div>
-              <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
-                <span className="text-gray-300">速度差</span>
-                <span className={`font-bold font-mono ${result.speedup >= 1 ? "text-green-400" : "text-red-400"}`}>
-                  {result.speedup >= 1
-                    ? `WASM が ${result.speedup.toFixed(2)}x 速い`
-                    : `JS が ${(1 / result.speedup).toFixed(2)}x 速い`}
-                </span>
+              <div className="flex justify-between">
+                <span className="text-green-400">WebGL</span>
+                <span className="text-green-400 font-mono">{result.webglTime.toFixed(2)} ms</span>
+              </div>
+              <div className="flex flex-col gap-0.5 border-t border-gray-700 pt-1 mt-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-300">WASM vs JS</span>
+                  <span className={`font-bold font-mono ${result.speedupWasm >= 1 ? "text-green-400" : "text-red-400"}`}>
+                    {result.speedupWasm >= 1
+                      ? `${result.speedupWasm.toFixed(2)}x 速い`
+                      : `${(1 / result.speedupWasm).toFixed(2)}x 遅い`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">WebGL vs JS</span>
+                  <span className={`font-bold font-mono ${result.speedupWebGL >= 1 ? "text-green-400" : "text-red-400"}`}>
+                    {result.speedupWebGL >= 1
+                      ? `${result.speedupWebGL.toFixed(2)}x 速い`
+                      : `${(1 / result.speedupWebGL).toFixed(2)}x 遅い`}
+                  </span>
+                </div>
               </div>
             </div>
           )}

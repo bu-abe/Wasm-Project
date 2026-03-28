@@ -3,11 +3,13 @@ import { useEditorStore } from "../store/editorStore";
 import { useWasm } from "./useWasm";
 import { applyFilters } from "../lib/wasmFilters";
 import { applyFiltersJS } from "../lib/jsFilters";
+import { applyFiltersWebGL } from "../lib/webglFilters";
 
 export function useImageEditor() {
   const { wasmModule, loading, error } = useWasm();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { originalImageData, filters, renderMode, setOriginalImageData } = useEditorStore();
+  const { originalImageData, filters, renderMode, setOriginalImageData } =
+    useEditorStore();
 
   // フィルター変更時にキャンバスを再描画
   useEffect(() => {
@@ -20,7 +22,9 @@ export function useImageEditor() {
     const result =
       renderMode === "wasm" && wasmModule
         ? applyFilters(wasmModule, originalImageData, filters)
-        : applyFiltersJS(originalImageData, filters);
+        : renderMode === "webgl"
+          ? applyFiltersWebGL(originalImageData, filters)
+          : applyFiltersJS(originalImageData, filters);
 
     ctx.putImageData(result, 0, 0);
   }, [originalImageData, filters, wasmModule, renderMode]);
@@ -50,7 +54,7 @@ export function useImageEditor() {
 
       URL.revokeObjectURL(url);
     },
-    [setOriginalImageData]
+    [setOriginalImageData],
   );
 
   // ダウンロード処理
@@ -64,7 +68,7 @@ export function useImageEditor() {
       link.href = canvasRef.current.toDataURL(mimeType, 0.95);
       link.click();
     },
-    [originalImageData]
+    [originalImageData],
   );
 
   return {

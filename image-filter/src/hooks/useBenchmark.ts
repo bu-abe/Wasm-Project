@@ -3,11 +3,14 @@ import { useEditorStore } from "../store/editorStore";
 import { useWasm } from "./useWasm";
 import { applyFilters } from "../lib/wasmFilters";
 import { applyFiltersJS } from "../lib/jsFilters";
+import { applyFiltersWebGL } from "../lib/webglFilters";
 
 export interface BenchmarkResult {
   jsTime: number;
   wasmTime: number;
-  speedup: number;
+  webglTime: number;
+  speedupWasm: number;
+  speedupWebGL: number;
   pixelCount: number;
 }
 
@@ -32,10 +35,16 @@ export function useBenchmark() {
     applyFilters(wasmModule, originalImageData, filters);
     const wasmTime = performance.now() - wasmStart;
 
+    const webglStart = performance.now();
+    applyFiltersWebGL(originalImageData, filters);
+    const webglTime = performance.now() - webglStart;
+
     setResult({
       jsTime,
       wasmTime,
-      speedup: jsTime / wasmTime,
+      webglTime,
+      speedupWasm: jsTime / wasmTime,
+      speedupWebGL: jsTime / webglTime,
       pixelCount: originalImageData.width * originalImageData.height,
     });
     setIsRunning(false);

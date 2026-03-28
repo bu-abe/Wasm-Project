@@ -22,7 +22,7 @@ const DEFAULT_FILTERS: FilterSettings = {
   invert: false,
 };
 
-export type RenderMode = "wasm" | "js";
+export type RenderMode = "wasm" | "js" | "webgl";
 
 interface EditorState {
   // 画像データ
