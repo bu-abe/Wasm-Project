@@ -39,6 +39,13 @@ const rawDiff = instance.exports.diff as (a: number, b: number) => number;
 const __pin = instance.exports.__pin as (ptr: number) => number;
 const __unpin = instance.exports.__unpin as (ptr: number) => void;
 
+export interface WasmTiming {
+  lowerMs: number;
+  execMs: number;
+  liftMs: number;
+  totalMs: number;
+}
+
 export function diff(oldText: string, newText: string): string {
   const oldPtr = __pin(lowerString(instance.exports, memory, oldText));
   const newPtr = lowerString(instance.exports, memory, newText);
@@ -47,4 +54,32 @@ export function diff(oldText: string, newText: string): string {
   } finally {
     __unpin(oldPtr);
   }
+}
+
+export function diffWithTiming(
+  oldText: string,
+  newText: string,
+): { result: string; timing: WasmTiming } {
+  const t0 = performance.now();
+  const oldPtr = __pin(lowerString(instance.exports, memory, oldText));
+  const newPtr = lowerString(instance.exports, memory, newText);
+  const t1 = performance.now();
+
+  const resultPtr = rawDiff(oldPtr, newPtr) >>> 0;
+  const t2 = performance.now();
+
+  const result = liftString(memory, resultPtr);
+  const t3 = performance.now();
+
+  __unpin(oldPtr);
+
+  return {
+    result,
+    timing: {
+      lowerMs: t1 - t0,
+      execMs: t2 - t1,
+      liftMs: t3 - t2,
+      totalMs: t3 - t0,
+    },
+  };
 }

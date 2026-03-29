@@ -1,0 +1,167 @@
+.diff-container {
+  margin-top: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.diff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--code-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.diff-stats {
+  display: flex;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diff-stat-add {
+  color: #1a7f37;
+}
+.diff-stat-del {
+  color: #cf222e;
+}
+@media (prefers-color-scheme: dark) {
+  .diff-stat-add {
+    color: #3fb950;
+  }
+  .diff-stat-del {
+    color: #f85149;
+  }
+}
+
+.diff-mode-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.diff-mode-toggle button {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.diff-mode-toggle button.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.diff-mode-toggle button:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.diff-body {
+  overflow-x: auto;
+}
+
+.diff-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.diff-split > .diff-table:first-child {
+  border-right: 1px solid var(--border);
+}
+
+/* テーブル共通 */
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 20px;
+  table-layout: fixed;
+}
+
+.diff-table td {
+  padding: 0 8px;
+  vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ガター（行番号） */
+.diff-gutter {
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
+  text-align: right;
+  color: var(--text);
+  opacity: 0.5;
+  user-select: none;
+  padding-right: 12px !important;
+  border-right: 1px solid var(--border);
+}
+
+.diff-prefix {
+  width: 20px;
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  user-select: none;
+  font-weight: 600;
+}
+
+.diff-content {
+  width: auto;
+}
+
+/* 行の背景色 */
+.diff-add {
+  background: rgba(46, 160, 67, 0.15);
+}
+.diff-add .diff-prefix,
+.diff-add .diff-gutter {
+  color: #1a7f37;
+  opacity: 1;
+}
+
+.diff-del {
+  background: rgba(248, 81, 73, 0.15);
+}
+.diff-del .diff-prefix,
+.diff-del .diff-gutter {
+  color: #cf222e;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .diff-add {
+    background: rgba(46, 160, 67, 0.1);
+  }
+  .diff-add .diff-prefix,
+  .diff-add .diff-gutter {
+    color: #3fb950;
+  }
+  .diff-del {
+    background: rgba(248, 81, 73, 0.1);
+  }
+  .diff-del .diff-prefix,
+  .diff-del .diff-gutter {
+    color: #f85149;
+  }
+}
+
+/* ホバー */
+.diff-table tr:hover {
+  filter: brightness(0.95);
+}
+@media (prefers-color-scheme: dark) {
+  .diff-table tr:hover {
+    filter: brightness(1.15);
+  }
+}
