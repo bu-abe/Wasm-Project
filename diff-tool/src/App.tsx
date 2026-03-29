@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { diff as wasmDiff, diffWithTiming, type WasmTiming } from "./wasmDiff";
+import { diff as wasmDiff } from "./wasmDiff";
 import { diff as jsDiff, type Edit } from "./jsDiff";
 import { generateTextPair } from "./generateText";
 import { DiffView } from "./DiffView";
@@ -9,9 +9,7 @@ const BENCH_SIZES = [100, 500, 1000, 5000, 10000];
 interface BenchResult {
   lines: number;
   wasmMs: number;
-  wasmTiming: WasmTiming;
   jsMs: number;
-  jsonParseMs: number;
 }
 
 function App() {
@@ -55,18 +53,15 @@ function App() {
       for (const lines of BENCH_SIZES) {
         const { oldText: o, newText: n } = generateTextPair(lines);
 
-        const { result: wasmResult, timing: wasmTiming } = diffWithTiming(o, n);
-        const wasmMs = wasmTiming.totalMs;
-
-        const jsonStart = performance.now();
-        JSON.parse(wasmResult);
-        const jsonParseMs = performance.now() - jsonStart;
+        const wasmStart = performance.now();
+        wasmDiff(o, n);
+        const wasmMs = performance.now() - wasmStart;
 
         const jsStart = performance.now();
         jsDiff(o, n);
         const jsMs = performance.now() - jsStart;
 
-        results.push({ lines, wasmMs, wasmTiming, jsMs, jsonParseMs });
+        results.push({ lines, wasmMs, jsMs });
       }
       setBenchResults(results);
       setBenchRunning(false);
@@ -153,60 +148,50 @@ function App() {
             <thead>
               <tr style={{ borderBottom: "2px solid var(--border)" }}>
                 <th style={{ textAlign: "right", padding: "8px" }}>行数</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#4ec9b0" }}>WASM 合計</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#e0a050" }}>↳ lower</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#e0a050" }}>↳ exec</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#e0a050" }}>↳ lift</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#e0a050" }}>↳ JSON.parse</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#569cd6" }}>JS 合計</th>
-                <th style={{ textAlign: "left", padding: "8px", width: "30%" }}>内訳</th>
+                <th style={{ textAlign: "right", padding: "8px", color: "#4ec9b0" }}>WASM</th>
+                <th style={{ textAlign: "right", padding: "8px", color: "#569cd6" }}>JS</th>
+                <th style={{ textAlign: "right", padding: "8px" }}>倍率</th>
+                <th style={{ textAlign: "left", padding: "8px", width: "40%" }}>比較</th>
               </tr>
             </thead>
             <tbody>
               {benchResults.map((r) => {
-                const wasmTotal = r.wasmTiming.totalMs + r.jsonParseMs;
-                const segments = [
-                  { label: "lower", ms: r.wasmTiming.lowerMs, color: "#e8733a" },
-                  { label: "exec", ms: r.wasmTiming.execMs, color: "#4ec9b0" },
-                  { label: "lift", ms: r.wasmTiming.liftMs, color: "#c084fc" },
-                  { label: "parse", ms: r.jsonParseMs, color: "#e0a050" },
-                ];
+                const maxMs = Math.max(r.wasmMs, r.jsMs);
+                const ratio = r.wasmMs < r.jsMs
+                  ? `JS の ${(r.jsMs / r.wasmMs).toFixed(1)}x 速い`
+                  : `JS の ${(r.wasmMs / r.jsMs).toFixed(1)}x 遅い`;
                 return (
                   <tr key={r.lines} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "8px", textAlign: "right" }}>
                       {r.lines.toLocaleString()}
                     </td>
                     <td style={{ padding: "8px", textAlign: "right", color: "#4ec9b0" }}>
-                      {wasmTotal.toFixed(2)}
-                    </td>
-                    <td style={{ padding: "8px", textAlign: "right", color: "#e8733a" }}>
-                      {r.wasmTiming.lowerMs.toFixed(2)}
-                    </td>
-                    <td style={{ padding: "8px", textAlign: "right", color: "#4ec9b0" }}>
-                      {r.wasmTiming.execMs.toFixed(2)}
-                    </td>
-                    <td style={{ padding: "8px", textAlign: "right", color: "#c084fc" }}>
-                      {r.wasmTiming.liftMs.toFixed(2)}
-                    </td>
-                    <td style={{ padding: "8px", textAlign: "right", color: "#e0a050" }}>
-                      {r.jsonParseMs.toFixed(2)}
+                      {r.wasmMs.toFixed(2)} ms
                     </td>
                     <td style={{ padding: "8px", textAlign: "right", color: "#569cd6" }}>
-                      {r.jsMs.toFixed(2)}
+                      {r.jsMs.toFixed(2)} ms
+                    </td>
+                    <td style={{ padding: "8px", textAlign: "right" }}>
+                      {ratio}
                     </td>
                     <td style={{ padding: "8px" }}>
-                      <div style={{ display: "flex", height: "16px", borderRadius: "3px", overflow: "hidden" }}>
-                        {segments.map((seg) => (
-                          <div
-                            key={seg.label}
-                            title={`${seg.label}: ${seg.ms.toFixed(2)} ms`}
-                            style={{
-                              width: `${(seg.ms / wasmTotal) * 100}%`,
-                              backgroundColor: seg.color,
-                              minWidth: seg.ms > 0 ? "2px" : 0,
-                            }}
-                          />
-                        ))}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <div
+                          style={{
+                            height: "8px",
+                            width: `${(r.wasmMs / maxMs) * 100}%`,
+                            backgroundColor: "#4ec9b0",
+                            borderRadius: "2px",
+                          }}
+                        />
+                        <div
+                          style={{
+                            height: "8px",
+                            width: `${(r.jsMs / maxMs) * 100}%`,
+                            backgroundColor: "#569cd6",
+                            borderRadius: "2px",
+                          }}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -214,12 +199,6 @@ function App() {
               })}
             </tbody>
           </table>
-          <div style={{ marginTop: "8px", display: "flex", gap: "16px", fontSize: "12px" }}>
-            <span><span style={{ color: "#e8733a" }}>■</span> lower (JS→WASM)</span>
-            <span><span style={{ color: "#4ec9b0" }}>■</span> exec (diff計算)</span>
-            <span><span style={{ color: "#c084fc" }}>■</span> lift (WASM→JS)</span>
-            <span><span style={{ color: "#e0a050" }}>■</span> JSON.parse</span>
-          </div>
         </div>
       )}
 
