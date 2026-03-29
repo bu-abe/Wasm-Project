@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import * as Type from "../types";
+import { instantiate } from "@wasm-project/image-filter";
+import wasmUrl from "@wasm-project/image-filter/build/release.wasm?url";
+import type { WasmExports } from "../types";
 
-export function useWasm(wasmPath: string = import.meta.env.BASE_URL + "build/release.wasm") {
-  const [wasmModule, setWasmModule] = useState<Type.WasmExports | null>(null);
+export function useWasm() {
+  const [wasmModule, setWasmModule] = useState<WasmExports | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -10,10 +12,9 @@ export function useWasm(wasmPath: string = import.meta.env.BASE_URL + "build/rel
     const loadWasm = async () => {
       try {
         console.log("Loading Wasm...");
-        const response = await fetch(wasmPath);
-        const buffer = await response.arrayBuffer();
-        const module = await WebAssembly.instantiate(buffer);
-        setWasmModule(module.instance.exports as unknown as Type.WasmExports);
+        const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
+        const wasm = await instantiate(module, {});
+        setWasmModule(wasm as unknown as WasmExports);
         console.log("Wasm loaded!");
       } catch (err) {
         console.error("Failed to load wasm:", err);
@@ -24,7 +25,7 @@ export function useWasm(wasmPath: string = import.meta.env.BASE_URL + "build/rel
     };
 
     loadWasm();
-  }, [wasmPath]);
+  }, []);
 
   return { wasmModule, loading, error };
 }
