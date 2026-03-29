@@ -1,0 +1,24 @@
+{
+  "name": "@wasm-project/diff",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./build/release.js",
+      "types": "./build/release.d.ts"
+    },
+    "./build/*": "./build/*"
+  },
+  "files": [
+    "build/release.js",
+    "build/release.wasm",
+    "build/release.d.ts"
+  ],
+  "scripts": {
+    "asbuild": "asc assembly/index.ts --target release",
+    "prepublishOnly": "npm run asbuild"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.28.11"
+  }
+}
