@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Edit } from "./jsDiff";
+import type { Edit } from "./lib/jsDiff";
 import "./DiffView.css";
 
 type ViewMode = "unified" | "split";
@@ -35,13 +35,8 @@ function UnifiedView({ edits }: { edits: Edit[] }) {
       <tbody>
         {edits.map((edit, i) => {
           const cls =
-            edit.type === 1
-              ? "diff-add"
-              : edit.type === 2
-                ? "diff-del"
-                : "";
-          const prefix =
-            edit.type === 1 ? "+" : edit.type === 2 ? "-" : " ";
+            edit.type === 1 ? "diff-add" : edit.type === 2 ? "diff-del" : "";
+          const prefix = edit.type === 1 ? "+" : edit.type === 2 ? "-" : " ";
           return (
             <tr key={i} className={cls}>
               <td className="diff-gutter diff-gutter-old">

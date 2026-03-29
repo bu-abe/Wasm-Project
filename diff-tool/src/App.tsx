@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { diff as wasmDiff } from "./wasmDiff";
-import { diff as jsDiff, type Edit } from "./jsDiff";
+import { diff as wasmDiff } from "./lib/wasmDiff";
+import { diff as jsDiff, type Edit } from "./lib/jsDiff";
 import { generateTextPair } from "./generateText";
 import { DiffView } from "./DiffView";
 
@@ -97,7 +97,14 @@ function App() {
       </div>
 
       {/* 操作ボタン */}
-      <div style={{ marginTop: "16px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      <div
+        style={{
+          marginTop: "16px",
+          display: "flex",
+          gap: "8px",
+          flexWrap: "wrap",
+        }}
+      >
         <button onClick={handleDiff}>差分を計算</button>
         {BENCH_SIZES.slice(0, 3).map((n) => (
           <button key={n} onClick={() => handleGenerate(n)}>
@@ -122,12 +129,12 @@ function App() {
           <span style={{ color: "#4ec9b0" }}>
             WASM: {wasmTime.toFixed(3)} ms
           </span>
-          <span style={{ color: "#569cd6" }}>
-            JS: {jsTime.toFixed(3)} ms
-          </span>
+          <span style={{ color: "#569cd6" }}>JS: {jsTime.toFixed(3)} ms</span>
           <span style={{ color: "#d4d4d4" }}>
             （{wasmTime < jsTime ? "WASM" : "JS"} が{" "}
-            {(Math.max(wasmTime, jsTime) / Math.min(wasmTime, jsTime)).toFixed(1)}
+            {(Math.max(wasmTime, jsTime) / Math.min(wasmTime, jsTime)).toFixed(
+              1,
+            )}
             x 速い）
           </span>
         </div>
@@ -148,34 +155,74 @@ function App() {
             <thead>
               <tr style={{ borderBottom: "2px solid var(--border)" }}>
                 <th style={{ textAlign: "right", padding: "8px" }}>行数</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#4ec9b0" }}>WASM</th>
-                <th style={{ textAlign: "right", padding: "8px", color: "#569cd6" }}>JS</th>
+                <th
+                  style={{
+                    textAlign: "right",
+                    padding: "8px",
+                    color: "#4ec9b0",
+                  }}
+                >
+                  WASM
+                </th>
+                <th
+                  style={{
+                    textAlign: "right",
+                    padding: "8px",
+                    color: "#569cd6",
+                  }}
+                >
+                  JS
+                </th>
                 <th style={{ textAlign: "right", padding: "8px" }}>倍率</th>
-                <th style={{ textAlign: "left", padding: "8px", width: "40%" }}>比較</th>
+                <th style={{ textAlign: "left", padding: "8px", width: "40%" }}>
+                  比較
+                </th>
               </tr>
             </thead>
             <tbody>
               {benchResults.map((r) => {
                 const maxMs = Math.max(r.wasmMs, r.jsMs);
-                const ratio = r.wasmMs < r.jsMs
-                  ? `JS の ${(r.jsMs / r.wasmMs).toFixed(1)}x 速い`
-                  : `JS の ${(r.wasmMs / r.jsMs).toFixed(1)}x 遅い`;
+                const ratio =
+                  r.wasmMs < r.jsMs
+                    ? `JS の ${(r.jsMs / r.wasmMs).toFixed(1)}x 速い`
+                    : `JS の ${(r.wasmMs / r.jsMs).toFixed(1)}x 遅い`;
                 return (
-                  <tr key={r.lines} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <tr
+                    key={r.lines}
+                    style={{ borderBottom: "1px solid var(--border)" }}
+                  >
                     <td style={{ padding: "8px", textAlign: "right" }}>
                       {r.lines.toLocaleString()}
                     </td>
-                    <td style={{ padding: "8px", textAlign: "right", color: "#4ec9b0" }}>
+                    <td
+                      style={{
+                        padding: "8px",
+                        textAlign: "right",
+                        color: "#4ec9b0",
+                      }}
+                    >
                       {r.wasmMs.toFixed(2)} ms
                     </td>
-                    <td style={{ padding: "8px", textAlign: "right", color: "#569cd6" }}>
+                    <td
+                      style={{
+                        padding: "8px",
+                        textAlign: "right",
+                        color: "#569cd6",
+                      }}
+                    >
                       {r.jsMs.toFixed(2)} ms
                     </td>
                     <td style={{ padding: "8px", textAlign: "right" }}>
                       {ratio}
                     </td>
                     <td style={{ padding: "8px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "2px",
+                        }}
+                      >
                         <div
                           style={{
                             height: "8px",

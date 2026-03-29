@@ -1,5 +1,5 @@
-import { instantiate } from "../build/release.js";
-import wasmUrl from "../build/release.wasm?url";
+import { instantiate } from "../../build/release.js";
+import wasmUrl from "../../build/release.wasm?url";
 
 const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
 const wasm = await instantiate(module, {
