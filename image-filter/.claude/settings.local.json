@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(sleep 3:*)",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_resize",
       "mcp__playwright__browser_take_screenshot",
@@ -12,13 +11,10 @@
       "Bash(npm run:*)",
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
-      "Bash(ls /Users/y.abe/Wasm-Project/image-filter/dist/assets/*.wasm)",
-      "Bash(grep -o [^\"\"]*.wasm[^\"\"]* /Users/y.abe/Wasm-Project/image-filter/dist/assets/index-_XbhRugw.js)",
       "Bash(npx vite:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:note.com)"
     ]
   },
-  "enabledMcpjsonServers": [
-    "playwright"
-  ]
+  "enabledMcpjsonServers": ["playwright"]
 }

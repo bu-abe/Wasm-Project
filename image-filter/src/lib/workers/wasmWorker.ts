@@ -2,8 +2,8 @@
 // メインスレッドからピクセルデータを受け取り、処理結果を返す
 
 import { instantiate } from "@wasm-project/image-filter";
-import type { WasmExports } from "../types";
-import type { FilterSettings } from "../store/editorStore";
+import type { WasmExports } from "../../types";
+import type { FilterSettings } from "../../store/editorStore";
 
 let wasm: WasmExports | null = null;
 
@@ -12,7 +12,7 @@ async function initWasm(): Promise<void> {
   // Worker 内では import.meta.url ベースで .wasm を fetch
   const wasmUrl = new URL(
     "@wasm-project/image-filter/build/release.wasm",
-    import.meta.url
+    import.meta.url,
   ).href;
   const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
   wasm = (await instantiate(module, {})) as unknown as WasmExports;
@@ -29,13 +29,16 @@ function applyFiltersInWorker(
   pixelData: Uint8Array,
   width: number,
   height: number,
-  filters: FilterSettings
+  filters: FilterSettings,
 ): Uint8Array {
   const pixelBytes = pixelData.byteLength;
   ensureMemory(pixelBytes * 3);
 
+  // WASMメモリレイアウト:
+  if (!wasm) return new Uint8Array(0);
+
   // ピクセルデータを WASM メモリの作業バッファ (offset 0) にコピー
-  const wasmMem = new Uint8Array(wasm!.memory.buffer);
+  const wasmMem = new Uint8Array(wasm.memory.buffer);
   wasmMem.set(pixelData, 0);
 
   const offset = 0;
@@ -44,39 +47,39 @@ function applyFiltersInWorker(
   // フィルターパイプライン
   if (filters.brightness !== 0) {
     const value = Math.round((filters.brightness / 100) * 255);
-    wasm!.brightnessFilter(offset, length, value);
+    wasm.brightnessFilter(offset, length, value);
   }
   if (filters.contrast !== 0) {
-    wasm!.contrastFilter(offset, length, filters.contrast);
+    wasm.contrastFilter(offset, length, filters.contrast);
   }
   if (filters.saturation !== 0) {
-    wasm!.saturationFilter(offset, length, filters.saturation);
+    wasm.saturationFilter(offset, length, filters.saturation);
   }
   if (filters.grayscale) {
-    wasm!.grayscaleFilter(offset, length);
+    wasm.grayscaleFilter(offset, length);
   }
   if (filters.sepia) {
-    wasm!.sepiaFilter(offset, length);
+    wasm.sepiaFilter(offset, length);
   }
   if (filters.invert) {
-    wasm!.invertFilter(offset, length);
+    wasm.invertFilter(offset, length);
   }
   if (filters.blur > 0) {
     const dst = pixelBytes * 2;
-    wasm!.boxBlurFilter(offset, dst, width, height, filters.blur);
+    wasm.boxBlurFilter(offset, dst, width, height, filters.blur);
     // grow 後に wasmMem が無効化される可能性があるので再取得
-    const mem = new Uint8Array(wasm!.memory.buffer);
+    const mem = new Uint8Array(wasm.memory.buffer);
     mem.copyWithin(0, dst, dst + pixelBytes);
   }
   if (filters.sharpness > 0) {
     const dst = pixelBytes * 2;
-    wasm!.sharpenFilter(offset, dst, width, height, filters.sharpness);
-    const mem = new Uint8Array(wasm!.memory.buffer);
+    wasm.sharpenFilter(offset, dst, width, height, filters.sharpness);
+    const mem = new Uint8Array(wasm.memory.buffer);
     mem.copyWithin(0, dst, dst + pixelBytes);
   }
 
   // 結果を読み出し
-  const resultMem = new Uint8Array(wasm!.memory.buffer);
+  const resultMem = new Uint8Array(wasm.memory.buffer);
   return resultMem.slice(0, pixelBytes);
 }
 
@@ -106,12 +109,12 @@ self.onmessage = async (e: MessageEvent) => {
         new Uint8Array(pixelData),
         width,
         height,
-        filters
+        filters,
       );
       // Transferable で返してコピーを回避
       self.postMessage(
         { type: "applyFilters", id, result: result.buffer },
-        { transfer: [result.buffer] }
+        { transfer: [result.buffer] },
       );
     } catch (err) {
       self.postMessage({

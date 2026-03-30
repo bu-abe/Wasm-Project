@@ -12,11 +12,11 @@ const pendingCallbacks = new Map<
 
 function getWorker(): Worker {
   if (!worker) {
-    worker = new Worker(
-      new URL("../workers/wasmWorker.ts", import.meta.url),
-      { type: "module" }
-    );
+    worker = new Worker(new URL("./workers/wasmWorker.ts", import.meta.url), {
+      type: "module",
+    });
     worker.onmessage = (e: MessageEvent) => {
+      console.log("Worker response:", e);
       const { id, error, ...rest } = e.data;
       const cb = pendingCallbacks.get(id);
       if (!cb) return;
@@ -31,10 +31,16 @@ function getWorker(): Worker {
   return worker;
 }
 
-function postMessage(data: Record<string, unknown>, transfer?: Transferable[]): Promise<Record<string, unknown>> {
+function postMessage(
+  data: Record<string, unknown>,
+  transfer?: Transferable[],
+): Promise<Record<string, unknown>> {
   const id = ++messageId;
   return new Promise((resolve, reject) => {
-    pendingCallbacks.set(id, { resolve: resolve as (v: unknown) => void, reject });
+    pendingCallbacks.set(id, {
+      resolve: resolve as (v: unknown) => void,
+      reject,
+    });
     getWorker().postMessage({ ...data, id }, transfer ?? []);
   });
 }
@@ -49,7 +55,7 @@ export async function initWorkerWasm(): Promise<void> {
 
 export async function applyFiltersWorker(
   originalData: ImageData,
-  filters: FilterSettings
+  filters: FilterSettings,
 ): Promise<ImageData> {
   await initWorkerWasm();
 
@@ -65,10 +71,10 @@ export async function applyFiltersWorker(
       height,
       filters,
     },
-    [pixelBuffer]
-  ) as { result: ArrayBuffer };
+    [pixelBuffer],
+  );
 
   const result = new ImageData(width, height);
-  result.data.set(new Uint8Array(response.result));
+  result.data.set(new Uint8Array(response.result as ArrayBuffer));
   return result;
 }
