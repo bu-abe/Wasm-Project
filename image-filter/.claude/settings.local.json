@@ -14,7 +14,8 @@
       "Bash(npx tsc:*)",
       "Bash(ls /Users/y.abe/Wasm-Project/image-filter/dist/assets/*.wasm)",
       "Bash(grep -o [^\"\"]*.wasm[^\"\"]* /Users/y.abe/Wasm-Project/image-filter/dist/assets/index-_XbhRugw.js)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "enabledMcpjsonServers": [

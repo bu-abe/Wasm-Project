@@ -136,6 +136,14 @@ export function FilterPanel() {
                       : `${(1 / result.speedupWebGL).toFixed(2)}x 遅い`}
                   </span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">WebGL vs WASM</span>
+                  <span className={`font-bold font-mono ${result.speedupWebGLvsWasm >= 1 ? "text-green-400" : "text-red-400"}`}>
+                    {result.speedupWebGLvsWasm >= 1
+                      ? `${result.speedupWebGLvsWasm.toFixed(2)}x 速い`
+                      : `${(1 / result.speedupWebGLvsWasm).toFixed(2)}x 遅い`}
+                  </span>
+                </div>
               </div>
             </div>
           )}

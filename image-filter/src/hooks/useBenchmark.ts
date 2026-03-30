@@ -11,6 +11,7 @@ export interface BenchmarkResult {
   webglTime: number;
   speedupWasm: number;
   speedupWebGL: number;
+  speedupWebGLvsWasm: number;
   pixelCount: number;
 }
 
@@ -45,6 +46,7 @@ export function useBenchmark() {
       webglTime,
       speedupWasm: jsTime / wasmTime,
       speedupWebGL: jsTime / webglTime,
+      speedupWebGLvsWasm: wasmTime / webglTime,
       pixelCount: originalImageData.width * originalImageData.height,
     });
     setIsRunning(false);

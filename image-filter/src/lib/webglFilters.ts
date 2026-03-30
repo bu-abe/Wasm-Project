@@ -194,12 +194,13 @@ function getGL(): WebGL2RenderingContext {
   sharpenProgram = createProgram(gl, SHARPEN_SHADER);
 
   // 全画面四角形の頂点データ（位置 + テクスチャ座標）
+  // テクスチャ座標の Y を反転: Canvas ImageData (上→下) と WebGL テクスチャ (下→上) の違いを吸収
   const quadVerts = new Float32Array([
     // position    texCoord
-    -1, -1,        0, 0,
-     1, -1,        1, 0,
-    -1,  1,        0, 1,
-     1,  1,        1, 1,
+    -1, -1,        0, 1,
+     1, -1,        1, 1,
+    -1,  1,        0, 0,
+     1,  1,        1, 0,
   ]);
 
   quadVAO = gl.createVertexArray()!;
@@ -355,19 +356,11 @@ export function applyFiltersWebGL(
     currentTex = fb0.tex;
   }
 
-  // ピクセル読み出し
+  // ピクセル読み出し（テクスチャ座標で Y 反転済みなのでそのまま読み出せる）
   const targetFb = currentTex === fb0.tex ? fb0.fb : fb1.fb;
   gl.bindFramebuffer(gl.FRAMEBUFFER, targetFb);
-  const pixels = new Uint8Array(width * height * 4);
-  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-  // WebGL は左下原点なので上下反転
   const result = new ImageData(width, height);
-  for (let y = 0; y < height; y++) {
-    const srcRow = (height - 1 - y) * width * 4;
-    const dstRow = y * width * 4;
-    result.data.set(pixels.subarray(srcRow, srcRow + width * 4), dstRow);
-  }
+  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(result.data.buffer));
 
   // テクスチャ・フレームバッファを解放
   gl.deleteTexture(srcTex);
