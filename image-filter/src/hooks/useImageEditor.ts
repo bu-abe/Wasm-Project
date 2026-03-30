@@ -4,6 +4,7 @@ import { useWasm } from "./useWasm";
 import { applyFilters } from "../lib/wasmFilters";
 import { applyFiltersJS } from "../lib/jsFilters";
 import { applyFiltersWebGL } from "../lib/webglFilters";
+import { applyFiltersWorker } from "../lib/wasmWorkerClient";
 
 export function useImageEditor() {
   const { wasmModule, loading, error } = useWasm();
@@ -18,6 +19,15 @@ export function useImageEditor() {
 
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
+
+    if (renderMode === "wasm-worker") {
+      // Worker は非同期なので別処理
+      let cancelled = false;
+      applyFiltersWorker(originalImageData, filters).then((result) => {
+        if (!cancelled) ctx.putImageData(result, 0, 0);
+      });
+      return () => { cancelled = true; };
+    }
 
     const result =
       renderMode === "wasm" && wasmModule

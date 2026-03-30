@@ -5,9 +5,11 @@ interface ToolbarProps {
   onImageUpload: (file: File) => void;
   onDownload: (format: "png" | "jpeg") => void;
   hasImage: boolean;
+  onBenchmark: () => void;
+  isBenchmarkRunning: boolean;
 }
 
-export function Toolbar({ onImageUpload, onDownload, hasImage }: ToolbarProps) {
+export function Toolbar({ onImageUpload, onDownload, hasImage, onBenchmark, isBenchmarkRunning }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { undo, redo, canUndo, canRedo, renderMode, setRenderMode } = useEditorStore();
 
@@ -91,6 +93,16 @@ export function Toolbar({ onImageUpload, onDownload, hasImage }: ToolbarProps) {
         >
           WebGL
         </button>
+        <button
+          onClick={() => setRenderMode("wasm-worker")}
+          className={`px-2.5 py-1 transition whitespace-nowrap ${
+            renderMode === "wasm-worker"
+              ? "bg-purple-500 text-white font-bold"
+              : "text-gray-400 hover:bg-gray-700"
+          }`}
+        >
+          WASM+Worker
+        </button>
       </div>
 
       {hasImage && (
@@ -108,6 +120,16 @@ export function Toolbar({ onImageUpload, onDownload, hasImage }: ToolbarProps) {
           >
             JPEG 保存
           </button>
+
+          <div className="ml-auto shrink-0">
+            <button
+              onClick={onBenchmark}
+              disabled={isBenchmarkRunning}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isBenchmarkRunning ? "計測中..." : "ベンチマーク"}
+            </button>
+          </div>
         </>
       )}
     </div>

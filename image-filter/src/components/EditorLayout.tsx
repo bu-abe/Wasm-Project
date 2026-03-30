@@ -1,14 +1,23 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useImageEditor } from "../hooks/useImageEditor";
 import { useEditorStore } from "../store/editorStore";
+import { useBenchmark } from "../hooks/useBenchmark";
 import { Toolbar } from "./Toolbar";
 import { FilterPanel } from "./FilterPanel";
 import { Canvas } from "./Canvas";
+import { BenchmarkOverlay } from "./BenchmarkOverlay";
 
 export function EditorLayout() {
   const { canvasRef, loading, error, handleImageUpload, handleDownload, hasImage } =
     useImageEditor();
   const { undo, redo } = useEditorStore();
+  const { runBenchmark, result, isRunning, progress, iterations } = useBenchmark();
+  const [showBenchmark, setShowBenchmark] = useState(false);
+
+  const handleBenchmark = () => {
+    setShowBenchmark(true);
+    runBenchmark();
+  };
 
   // キーボードショートカット
   useEffect(() => {
@@ -48,10 +57,26 @@ export function EditorLayout() {
         onImageUpload={handleImageUpload}
         onDownload={handleDownload}
         hasImage={hasImage}
+        onBenchmark={handleBenchmark}
+        isBenchmarkRunning={isRunning}
       />
       <div className="flex flex-1 overflow-hidden flex-col-reverse md:flex-row">
         {hasImage && <FilterPanel />}
-        <Canvas canvasRef={canvasRef} hasImage={hasImage} />
+        <Canvas
+          canvasRef={canvasRef}
+          hasImage={hasImage}
+          overlay={
+            showBenchmark && (
+              <BenchmarkOverlay
+                result={result}
+                isRunning={isRunning}
+                progress={progress}
+                iterations={iterations}
+                onClose={() => setShowBenchmark(false)}
+              />
+            )
+          }
+        />
       </div>
     </div>
   );
