@@ -184,8 +184,8 @@ function App() {
                 const maxMs = Math.max(r.wasmMs, r.jsMs);
                 const ratio =
                   r.wasmMs < r.jsMs
-                    ? `JS の ${(r.jsMs / r.wasmMs).toFixed(1)}x 速い`
-                    : `JS の ${(r.wasmMs / r.jsMs).toFixed(1)}x 遅い`;
+                    ? `WASM が ${(r.jsMs / r.wasmMs).toFixed(1)}x 速い`
+                    : `JS が ${(r.wasmMs / r.jsMs).toFixed(1)}x 速い`;
                 return (
                   <tr
                     key={r.lines}
