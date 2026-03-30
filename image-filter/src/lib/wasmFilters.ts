@@ -28,26 +28,31 @@ function initWasmImage(wasm: WasmExports, imageData: ImageData): void {
 export function applyFilters(
   wasm: WasmExports,
   originalData: ImageData,
-  filters: FilterSettings
+  filters: FilterSettings,
 ): ImageData {
   const { width, height } = originalData;
   const pixelBytes = originalData.data.byteLength;
 
   // 元画像が変わった(または未初期化)場合のみJSヒープ→WASMコピーが走る
   if (cachedOriginalData !== originalData) {
+    console.time("[WASM] JS→WASMコピー (set)");
     initWasmImage(wasm, originalData);
+    console.timeEnd("[WASM] JS→WASMコピー (set)");
   } else {
     ensureMemory(wasm, pixelBytes * 3);
   }
 
-  // 元画像バックアップ → 作業バッファへ (WASM内部コピー、JSヒープ不要)
+  // 元画像バックアップ → 作業バッファへ
   const wasmMem = new Uint8Array(wasm.memory.buffer);
+  console.time("[WASM] バックアップ復元 (copyWithin)");
   wasmMem.copyWithin(0, pixelBytes, pixelBytes * 2);
+  console.timeEnd("[WASM] バックアップ復元 (copyWithin)");
 
   const offset = 0;
   const length = pixelBytes;
 
   // フィルターパイプライン: 元画像から順次適用
+  console.time("[WASM] フィルター処理");
   // 1. 明るさ
   if (filters.brightness !== 0) {
     const value = Math.round((filters.brightness / 100) * 255);
@@ -86,8 +91,13 @@ export function applyFilters(
     wasmMem.copyWithin(0, dst, dst + pixelBytes);
   }
 
+  console.timeEnd("[WASM] フィルター処理");
+
   // 結果を読み出し
+  console.time("[WASM] WASM→JS読出し (subarray)");
   const result = new ImageData(width, height);
   result.data.set(wasmMem.subarray(0, pixelBytes));
+  console.timeEnd("[WASM] WASM→JS読出し (subarray)");
+
   return result;
 }

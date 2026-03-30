@@ -356,11 +356,19 @@ export function applyFiltersWebGL(
     currentTex = fb0.tex;
   }
 
-  // ピクセル読み出し（テクスチャ座標で Y 反転済みなのでそのまま読み出せる）
+  // ピクセル読み出し（readPixels は左下原点で読むため、行を上下反転する）
   const targetFb = currentTex === fb0.tex ? fb0.fb : fb1.fb;
   gl.bindFramebuffer(gl.FRAMEBUFFER, targetFb);
+  const raw = new Uint8Array(width * height * 4);
+  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+
+  // 行単位で上下反転
   const result = new ImageData(width, height);
-  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(result.data.buffer));
+  const rowBytes = width * 4;
+  for (let y = 0; y < height; y++) {
+    const srcOffset = (height - 1 - y) * rowBytes;
+    result.data.set(raw.subarray(srcOffset, srcOffset + rowBytes), y * rowBytes);
+  }
 
   // テクスチャ・フレームバッファを解放
   gl.deleteTexture(srcTex);

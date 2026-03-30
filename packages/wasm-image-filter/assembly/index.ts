@@ -47,7 +47,8 @@ export function brightnessFilter(offset: u32, length: u32, value: i32): void {
 // コントラスト調整 (factor: -100〜100 → 内部で変換)
 export function contrastFilter(offset: u32, length: u32, value: i32): void {
   // value: -100〜100 → factor 計算
-  const factor: f32 = f32(i32(259) * (value + i32(255))) / f32(i32(255) * (i32(259) - value));
+  const factor: f32 =
+    f32(i32(259) * (value + i32(255))) / f32(i32(255) * (i32(259) - value));
   for (let i: u32 = offset; i < offset + length; i += 4) {
     const r = factor * (f32(load<u8>(i)) - 128.0) + 128.0;
     const g = factor * (f32(load<u8>(i + 1)) - 128.0) + 128.0;
@@ -106,7 +107,7 @@ export function boxBlurFilter(
   dst: u32,
   width: u32,
   height: u32,
-  radius: u32
+  radius: u32,
 ): void {
   const diameter: f32 = f32(radius * 2 + 1);
 
@@ -216,7 +217,7 @@ export function sharpenFilter(
   dst: u32,
   width: u32,
   height: u32,
-  amount: i32
+  amount: i32,
 ): void {
   const factor: f32 = f32(amount) / 100.0;
   // シャープ化カーネル: center = 1 + 4*factor, neighbors = -factor
@@ -255,7 +256,10 @@ export function sharpenFilter(
           val += edge * f32(load<u8>(idx + c));
         }
 
-        store<u8>(dst + (y * width + x) * 4 + c, u8(max<f32>(0, min<f32>(255, val))));
+        store<u8>(
+          dst + (y * width + x) * 4 + c,
+          u8(max<f32>(0, min<f32>(255, val))),
+        );
       }
       // alpha をコピー
       store<u8>(dst + (y * width + x) * 4 + 3, load<u8>(idx + 3));

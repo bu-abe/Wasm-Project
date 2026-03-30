@@ -10,8 +10,8 @@ function SpeedBadge({ baseline, target }: { baseline: number; target: number }) 
       }`}
     >
       {isFaster
-        ? `${ratio.toFixed(1)}x 速い`
-        : `${(1 / ratio).toFixed(1)}x 遅い`}
+        ? `JSより ${ratio.toFixed(1)}x 速い`
+        : `JSより ${(1 / ratio).toFixed(1)}x 遅い`}
     </span>
   );
 }
