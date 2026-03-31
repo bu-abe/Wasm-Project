@@ -13,8 +13,12 @@
       "Bash(npx tsc:*)",
       "Bash(npx vite:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:note.com)"
+      "WebFetch(domain:note.com)",
+      "Bash(npx --yes @marp-team/marp-cli --version)",
+      "Bash(npx @marp-team/marp-cli presentation.md --pdf --allow-local-files -o presentation.pdf)"
     ]
   },
-  "enabledMcpjsonServers": ["playwright"]
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }
